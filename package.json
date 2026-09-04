@@ -1,0 +1,12 @@
+{
+  "name": "ascii-card-studio",
+  "version": "1.0.0",
+  "description": "Turn your name, slogan, or logo into a living 3D ASCII card.",
+  "private": true,
+  "scripts": {
+    "deploy": "cp index.html dist/ && wrangler pages deploy dist --project-name=ascii-card-studio"
+  },
+  "devDependencies": {
+    "wrangler": "^4.126.0"
+  }
+}

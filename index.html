@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASCII Card Studio — 3D 字符动画卡片生成器</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#18181b; --mut:#71717a; --line:#e4e4e7; --bg:#efeff0; --accent:#6d28d9;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","PingFang SC",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+header{
+  max-width:1180px;margin:0 auto;padding:26px 24px 4px;
+  display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;
+}
+.logo{font-weight:700;font-size:15px;letter-spacing:.06em}
+.logo em{font-style:normal;color:var(--accent)}
+header p{color:var(--mut);font-size:12px}
+main{
+  max-width:1180px;margin:0 auto;padding:20px 24px 72px;
+  display:flex;gap:56px;align-items:flex-start;justify-content:center;flex-wrap:wrap;
+}
+
+/* ---------- card ---------- */
+.stage{padding:28px 0}
+.card{
+  position:relative;width:520px;max-width:92vw;background:#fff;
+  border:1px solid var(--line);border-radius:3px;
+  box-shadow:0 1px 2px rgba(0,0,0,.04),0 16px 48px -16px rgba(0,0,0,.10);
+}
+.cm{position:absolute;width:16px;height:16px;border:1.5px solid #a1a1aa;pointer-events:none}
+.cm.tl{top:-10px;left:-10px;border-right:0;border-bottom:0}
+.cm.tr{top:-10px;right:-10px;border-left:0;border-bottom:0}
+.cm.bl{bottom:-10px;left:-10px;border-right:0;border-top:0}
+.cm.br{bottom:-10px;right:-10px;border-left:0;border-top:0}
+.canvas-wrap{
+  position:relative;aspect-ratio:1/1.06;margin:14px 14px 0;
+  background:#fff;overflow:hidden;border-radius:2px;
+}
+#ascii{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+#ascii.grabbing{cursor:grabbing}
+.card-body{padding:22px 26px 24px}
+.title-row{display:flex;align-items:flex-start;gap:12px}
+h1{
+  font-family:"Instrument Serif",Georgia,"Times New Roman",serif;
+  font-weight:400;font-size:31px;line-height:1.15;letter-spacing:-.01em;flex:1;outline:none;
+  word-break:break-word;
+}
+.arrow-badge{
+  flex:none;width:30px;height:30px;background:#111;border-radius:7px;color:#fff;
+  display:grid;place-items:center;font-size:14px;margin-top:3px;
+}
+#cardDesc{
+  margin-top:10px;color:var(--mut);font-size:13px;line-height:1.55;outline:none;min-height:20px;
+  word-break:break-word;
+}
+[contenteditable]:focus{box-shadow:0 0 0 2px rgba(109,40,217,.16);border-radius:4px}
+.card-foot{margin-top:22px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.seg{display:inline-flex;background:#f4f4f5;border:1px solid var(--line);border-radius:8px;padding:2px}
+.seg button{
+  border:0;background:transparent;padding:5px 12px;font-size:12px;border-radius:6px;
+  color:var(--mut);cursor:pointer;font-family:inherit;
+}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.foot-btns{display:flex;gap:8px}
+.btn{
+  border:1px solid var(--line);background:#f4f4f5;color:var(--ink);
+  font-size:12.5px;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.btn:hover{background:#ececef}
+.btn.dark{background:#111;color:#fff;border-color:#111}
+.btn.dark:hover{background:#2a2a2e}
+.btn:disabled{opacity:.55;cursor:default}
+.wm{
+  position:absolute;right:14px;bottom:9px;font-size:8.5px;letter-spacing:.22em;
+  color:#c6c6cd;pointer-events:none;user-select:none;
+}
+
+/* ---------- panel ---------- */
+.panel{width:300px;flex:none;padding-top:28px}
+.panel h2{font-size:12px;letter-spacing:.18em;color:var(--mut);font-weight:600;margin-bottom:18px}
+.field{margin-bottom:20px}
+.field>label{
+  display:flex;justify-content:space-between;font-size:12px;color:var(--mut);
+  margin-bottom:8px;letter-spacing:.04em;
+}
+.field>label span{color:var(--ink);font-variant-numeric:tabular-nums}
+.pills{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pills.three{grid-template-columns:1fr 1fr 1fr}
+.field input[type=text]{
+  width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+  font:inherit;font-size:13px;background:#fff;color:var(--ink);outline:none;
+}
+.field input[type=text]:focus{border-color:var(--ink)}
+.pills button{
+  border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px 0;
+  font-size:12.5px;color:var(--mut);cursor:pointer;font-family:inherit;
+}
+.pills button.on{border-color:var(--ink);color:var(--ink);font-weight:600}
+.dots{display:flex;gap:10px}
+.dots button{
+  width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);padding:0;
+}
+.dots button.on{border-color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.panel hr{border:0;border-top:1px solid var(--line);margin:22px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.note{margin-top:12px;font-size:12px;color:var(--mut);line-height:1.6}
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed;left:50%;bottom:32px;transform:translate(-50%,16px);
+  background:#111;color:#fff;font-size:12.5px;padding:9px 16px;border-radius:8px;
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:99;
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:960px){
+  main{gap:24px}
+  .panel{width:min(520px,92vw)}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ASCII CARD <em>STUDIO</em></div>
+  <p>3D 字符动画卡片生成器 · 本地运行 · 可分享链接</p>
+</header>
+
+<main>
+  <section class="stage">
+    <div class="card" id="card">
+      <i class="cm tl"></i><i class="cm tr"></i><i class="cm bl"></i><i class="cm br"></i>
+      <div class="canvas-wrap"><canvas id="ascii"></canvas></div>
+      <div class="card-body">
+        <div class="title-row">
+          <h1 id="cardTitle" contenteditable="true" spellcheck="false">Turn Noise Into Narrative.</h1>
+          <span class="arrow-badge">↗</span>
+        </div>
+        <p id="cardDesc" contenteditable="true" spellcheck="false">Render your idea as a living ASCII card — pick a geometry, tune the light, and broadcast it to your audience instantly.</p>
+        <div class="card-foot">
+          <div class="seg" id="charsetSeg">
+            <button data-v="01" class="on">01</button>
+            <button data-v="ascii">ASCII</button>
+            <button data-v="custom" title="自定义字符（在右侧面板输入）">✎</button>
+          </div>
+          <div class="foot-btns">
+            <button class="btn" id="btnCopy" data-def="⧉ Copy Link">⧉ Copy Link</button>
+            <button class="btn dark" id="btnGif" data-def="⇩ Export GIF">⇩ Export GIF</button>
+          </div>
+        </div>
+      </div>
+      <span class="wm">ASCII CARD STUDIO</span>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <h2>设置 SETTINGS</h2>
+    <div class="field">
+      <label>模式 MODE</label>
+      <div class="pills three" id="modePills">
+        <button data-v="shape" class="on">几何体</button>
+        <button data-v="text">文字</button>
+        <button data-v="image">图片</button>
+      </div>
+    </div>
+    <div class="field" id="textField" style="display:none">
+      <label>你的文字 YOUR TEXT</label>
+      <input type="text" id="textInput" value="TURN NOISE INTO NARRATIVE · " spellcheck="false">
+      <p class="note">文字会铺满所选几何体的表面，随其一起旋转。</p>
+    </div>
+    <div class="field" id="imageField" style="display:none">
+      <label>上传图片 IMAGE</label>
+      <div class="row">
+        <button class="btn" id="btnUpload">选择图片…</button>
+        <button class="btn" id="btnClearImg" style="display:none">清除图片</button>
+      </div>
+      <p class="note">也可直接拖拽图片到卡片上。建议对比强烈的 logo / 头像 / 图形。</p>
+      <input type="file" id="fileInput" accept="image/*" hidden>
+    </div>
+    <div class="field" id="customField" style="display:none">
+      <label>自定义字符 CHARS</label>
+      <input type="text" id="customInput" value="◆◇" maxlength="24" spellcheck="false">
+    </div>
+    <div class="field" id="shapeField">
+      <label>形状 SHAPE</label>
+      <div class="pills" id="shapePills">
+        <button data-v="knot" class="on">环面结</button>
+        <button data-v="torus">圆环</button>
+        <button data-v="sphere">球体</button>
+        <button data-v="mobius">莫比乌斯</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>配色 PALETTE</label>
+      <div class="dots" id="paletteDots"></div>
+    </div>
+    <div class="field">
+      <label>速度 SPEED <span id="speedVal">1.00</span></label>
+      <input type="range" id="speed" min="0" max="2" step="0.05" value="1">
+    </div>
+    <div class="field">
+      <label>密度 DENSITY <span id="densVal">9px</span></label>
+      <input type="range" id="density" min="7" max="12" step="0.5" value="9">
+    </div>
+    <hr>
+    <div class="field">
+      <label>导出 EXPORT</label>
+      <div class="row">
+        <button class="btn" id="btnPng">PNG 静态图</button>
+        <button class="btn" id="btnWebm">WebM 视频</button>
+      </div>
+      <p class="note">GIF 导出在卡片右下角（黑按钮）。所有处理均在本地完成，不上传任何内容。</p>
+    </div>
+    <p class="note">💡 点击卡片上的标题 / 描述可直接编辑；拖动动画区域可手动旋转；Copy Link 会把当前全部配置编码进网址，打开即还原。</p>
+  </aside>
+</main>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ============================================================
+   ASCII Card Studio — donut.c 式 3D 字符渲染 + 卡片包装
+   ============================================================ */
+const TAU = Math.PI * 2;
+const $ = s => document.querySelector(s);
+
+/* ---------- 3D 小工具 ---------- */
+function vnorm(v){ const l = Math.hypot(v[0],v[1],v[2]) || 1; return [v[0]/l, v[1]/l, v[2]/l]; }
+function vcross(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+
+/* ---------- 形状库：fn(u,v,out) -> out.p / out.n ---------- */
+const SHAPES = {
+  knot: {
+    Nu:340, Nv:32, u0:0, u1:TAU, v0:0, v1:TAU, absN:false, textAlong:'u',
+    fn(u,v,out){
+      const p=2, q=3, zs=1.1, tr=0.62;
+      const r   = 2 + Math.cos(q*u);
+      const rq  = -q*Math.sin(q*u);
+      const rqq = -q*q*Math.cos(q*u);
+      const cu = Math.cos(p*u), su = Math.sin(p*u);
+      const cx = r*cu, cy = r*su, cz = Math.sin(q*u)*zs;
+      // C'(u) 与 C''(u)（解析）
+      const dx = rq*cu - p*r*su,  dy = rq*su + p*r*cu,  dz = q*Math.cos(q*u)*zs;
+      const ddx = rqq*cu - 2*p*rq*su - p*p*r*cu;
+      const ddy = rqq*su + 2*p*rq*cu - p*p*r*su;
+      const ddz = -q*q*Math.sin(q*u)*zs;
+      const T = vnorm([dx,dy,dz]);
+      const B = vnorm(vcross(T,[ddx,ddy,ddz]));
+      const N = vcross(B,T);
+      const cv = Math.cos(v), sv = Math.sin(v);
+      const nx = cv*N[0]+sv*B[0], ny = cv*N[1]+sv*B[1], nz = cv*N[2]+sv*B[2];
+      out.p[0]=cx+tr*nx; out.p[1]=cy+tr*ny; out.p[2]=cz+tr*nz;
+      out.n[0]=nx; out.n[1]=ny; out.n[2]=nz;
+    }
+  },
+  torus: {
+    Nu:180, Nv:60, u0:0, u1:TAU, v0:0, v1:TAU, absN:false, textAlong:'u',
+    fn(u,v,out){
+      const R=1.9, r=0.72;
+      const cu=Math.cos(u), su=Math.sin(u), cv=Math.cos(v), sv=Math.sin(v);
+      out.p[0]=(R+r*cv)*cu; out.p[1]=(R+r*cv)*su; out.p[2]=r*sv;
+      out.n[0]=cv*cu; out.n[1]=cv*su; out.n[2]=sv;
+    }
+  },
+  sphere: {
+    Nu:80, Nv:150, u0:0, u1:Math.PI, v0:0, v1:TAU, absN:false, textAlong:'v',
+    fn(u,v,out){
+      const R=1.7;
+      const su=Math.sin(u), cu=Math.cos(u), cv=Math.cos(v), sv=Math.sin(v);
+      const x=su*cv, y=su*sv, z=cu;
+      out.p[0]=R*x; out.p[1]=R*y; out.p[2]=R*z;
+      out.n[0]=x; out.n[1]=y; out.n[2]=z;
+    }
+  },
+  mobius: {
+    Nu:220, Nv:20, u0:0, u1:TAU, v0:-1, v1:1, absN:true, textAlong:'u',
+    fn(u,v,out){
+      v *= 0.95;
+      const P = (u,v) => {
+        const h = u/2, w = 1 + v/2*Math.cos(h);
+        return [w*Math.cos(u), w*Math.sin(u), v/2*Math.sin(h)];
+      };
+      const e = 0.02;
+      const c = P(u,v), ua = P(u+e,v), ub = P(u-e,v), va = P(u,v+e), vb = P(u,v-e);
+      const du = [ua[0]-ub[0], ua[1]-ub[1], ua[2]-ub[2]];
+      const dv = [va[0]-vb[0], va[1]-vb[1], va[2]-vb[2]];
+      const n = vnorm(vcross(du,dv));
+      out.p[0]=c[0]; out.p[1]=c[1]; out.p[2]=c[2];
+      out.n[0]=n[0]; out.n[1]=n[1]; out.n[2]=n[2];
+    }
+  }
+};
+
+/* 标定：多角度实际投影，测量最大范围 → 自动确定相机距离与缩放 */
+for (const key in SHAPES){
+  const sh = SHAPES[key], t = {p:[0,0,0], n:[0,0,0]};
+  let m = 0;
+  for (let i=0;i<48;i++) for (let j=0;j<12;j++){
+    sh.fn(sh.u0+(sh.u1-sh.u0)*i/48, sh.v0+(sh.v1-sh.v0)*j/12, t);
+    const r = Math.hypot(t.p[0],t.p[1],t.p[2]);
+    if (r>m) m=r;
+  }
+  sh.dist = 3.2*m;
+  // 在 16 组旋转角下投影，记录最大 |x*ooz| / |y*ooz|（单位空间）
+  let maxE = 0;
+  for (let ai=0;ai<4;ai++) for (let bi=0;bi<4;bi++){
+    const A = ai*Math.PI/2 + 0.4, B = bi*Math.PI/2 + 0.3;
+    const cA=Math.cos(A), sA=Math.sin(A), cB=Math.cos(B), sB=Math.sin(B);
+    for (let i=0;i<sh.Nu;i+=6) for (let j=0;j<sh.Nv;j+=4){
+      sh.fn(sh.u0+(sh.u1-sh.u0)*i/sh.Nu, sh.v0+(sh.v1-sh.v0)*j/sh.Nv, t);
+      const y1=t.p[1]*cA - t.p[2]*sA, z1=t.p[1]*sA + t.p[2]*cA;
+      const x2=t.p[0]*cB - y1*sB, y2=t.p[0]*sB + y1*cB, z2=z1;
+      const ooz = 1/(z2 + sh.dist);
+      maxE = Math.max(maxE, Math.abs(x2*ooz), Math.abs(y2*ooz));
+    }
+  }
+  sh.k = 0.44 / maxE; // 乘以 min(W,H) 后，最大半径 ≈ 44% 画布
+}
+
+/* ---------- 配色 ---------- */
+const NB = 24;
+function hexRgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+function makeBuckets(dark,lit){
+  const d=hexRgb(dark), l=hexRgb(lit), arr=[];
+  for (let b=0;b<NB;b++){
+    const t = Math.pow(b/(NB-1), 0.8);
+    arr.push(`rgb(${Math.round(d[0]+(l[0]-d[0])*t)},${Math.round(d[1]+(l[1]-d[1])*t)},${Math.round(d[2]+(l[2]-d[2])*t)})`);
+  }
+  return arr;
+}
+const PALETTES = {
+  violet: {name:'紫罗兰', dark:'#dcdce0', lit:'#6d28d9'},
+  mono:   {name:'墨色',   dark:'#e2e2e4', lit:'#27272a'},
+  matrix: {name:'矩阵绿', dark:'#dae3da', lit:'#15803d'},
+  amber:  {name:'琥珀',   dark:'#e6ddd0', lit:'#b45309'},
+  cyan:   {name:'青',     dark:'#d9e3e8', lit:'#0e7490'},
+  rose:   {name:'品红',   dark:'#eadbe2', lit:'#be185d'}
+};
+for (const k in PALETTES) PALETTES[k].buckets = makeBuckets(PALETTES[k].dark, PALETTES[k].lit);
+
+const RAMP = ' .·:-=+*#%@';
+const LIGHT = vnorm([0.35, 0.85, -1]);
+
+/* ---------- 状态 ---------- */
+const state = { shape:'knot', charset:'01', palette:'violet', speed:1, fontSize:9,
+                mode:'shape', text:'TURN NOISE INTO NARRATIVE · ', custom:'◆◇' };
+
+/* ---------- 文字表面贴图 ---------- */
+let textGrid = null;
+function buildTextGrid(){
+  const gw = 180, gh = 24;
+  const grid = new Array(gw*gh).fill(' ');
+  let t = (state.text || '').trim();
+  if (!t) t = 'ASCII · ';
+  if (!/ $/.test(t)) t += ' · ';
+  const row = t.repeat(Math.ceil(gw/t.length)+1);
+  for (let y=0;y<gh;y++) for (let x=0;x<gw;x++) grid[y*gw+x] = row[x];
+  textGrid = {grid, gw, gh};
+}
+buildTextGrid();
+
+/* ---------- 图片 ASCII ---------- */
+let img = null; // {data:Float32Array(lum 0..1), w, h}
+function loadImageFile(file){
+  if (!file || !file.type.startsWith('image/')) { toast('请选择图片文件'); return; }
+  const url = URL.createObjectURL(file);
+  const im = new Image();
+  im.onload = () => {
+    const max = 260;
+    const sc = Math.min(1, max/Math.max(im.width, im.height));
+    const w = Math.max(8, Math.round(im.width*sc)), h = Math.max(8, Math.round(im.height*sc));
+    const c = document.createElement('canvas'); c.width=w; c.height=h;
+    const g = c.getContext('2d');
+    g.fillStyle='#fff'; g.fillRect(0,0,w,h); g.drawImage(im,0,0,w,h);
+    const d = g.getImageData(0,0,w,h).data;
+    const lum = new Float32Array(w*h);
+    let lo=1, hi=0;
+    for (let i=0;i<w*h;i++){
+      const l = (0.2126*d[i*4]+0.7152*d[i*4+1]+0.0722*d[i*4+2])/255;
+      lum[i]=l; if(l<lo)lo=l; if(l>hi)hi=l;
+    }
+    // 对比度拉伸
+    const span = Math.max(hi-lo, 0.05);
+    for (let i=0;i<lum.length;i++) lum[i] = Math.min(1, Math.max(0, (lum[i]-lo)/span));
+    img = {data:lum, w, h};
+    state.mode = 'image';
+    syncModeUI();
+    toast('图片已加载，ASCII 化完成');
+    URL.revokeObjectURL(url);
+  };
+  im.onerror = () => { toast('图片加载失败'); URL.revokeObjectURL(url); };
+  im.src = url;
+}
+
+/* ---------- DOM ---------- */
+const el = {
+  card: $('#card'), canvas: $('#ascii'), wrap: $('.canvas-wrap'),
+  title: $('#cardTitle'), desc: $('#cardDesc'),
+  toast: $('#toast'), btnGif: $('#btnGif'), btnCopy: $('#btnCopy'),
+  btnPng: $('#btnPng'), btnWebm: $('#btnWebm'),
+  charsetSeg: $('#charsetSeg'), shapePills: $('#shapePills'),
+  modePills: $('#modePills'), shapeField: $('#shapeField'),
+  textField: $('#textField'), textInput: $('#textInput'),
+  imageField: $('#imageField'), fileInput: $('#fileInput'),
+  btnUpload: $('#btnUpload'), btnClearImg: $('#btnClearImg'),
+  customField: $('#customField'), customInput: $('#customInput'),
+  dots: $('#paletteDots'), speed: $('#speed'), speedVal: $('#speedVal'),
+  density: $('#density'), densVal: $('#densVal')
+};
+const ctx = el.canvas.getContext('2d');
+
+/* ---------- 画布尺寸 / 网格 ---------- */
+let W=0, H=0, dpr=1, cols=0, rows=0, charW=0, charH=0;
+let cellZ = new Float32Array(0), cellL = new Float32Array(0), cellCh = new Uint16Array(0);
+
+let buckets = []; // 每桶 Uint32Array + count
+function resize(){
+  const r = el.wrap.getBoundingClientRect();
+  if (r.width < 10) return;
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = Math.round(r.width); H = Math.round(r.height);
+  el.canvas.width = Math.round(W*dpr); el.canvas.height = Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  setupFont();
+  const n = cols*rows;
+  cellZ = new Float32Array(n); cellL = new Float32Array(n); cellCh = new Uint16Array(n);
+  buckets = Array.from({length:NB}, () => ({cells:new Uint32Array(n), count:0}));
+}
+function setupFont(){
+  ctx.font = `500 ${state.fontSize}px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace`;
+  ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+  charW = Math.max(ctx.measureText('0').width, 1);
+  charH = state.fontSize * 1.0;
+  cols = Math.max(8, Math.floor(W/charW));
+  rows = Math.max(8, Math.floor(H/charH));
+}
+new ResizeObserver(resize).observe(el.wrap);
+
+/* ---------- 旋转状态与交互 ---------- */
+let autoA=0.7, autoB=0.5, userA=0, userB=0, dragging=false;
+let animT = 0;
+el.canvas.addEventListener('pointerdown', e => {
+  dragging = true; el.canvas.classList.add('grabbing');
+  el.canvas.setPointerCapture(e.pointerId);
+  let lx=e.clientX, ly=e.clientY;
+  const mv = ev => { userB += (ev.clientX-lx)*0.006; userA += (ev.clientY-ly)*0.006; lx=ev.clientX; ly=ev.clientY; };
+  const up = () => { dragging=false; el.canvas.classList.remove('grabbing');
+    el.canvas.removeEventListener('pointermove',mv); el.canvas.removeEventListener('pointerup',up); };
+  el.canvas.addEventListener('pointermove',mv);
+  el.canvas.addEventListener('pointerup',up);
+});
+
+/* ---------- 渲染核心 ---------- */
+function bitAt(x,y,t){
+  let h = (Math.imul(x,374761393) + Math.imul(y,668265263) + Math.imul(t,2246822519)) >>> 0;
+  h = Math.imul(h ^ (h>>>13), 1274126177) >>> 0;
+  return (h ^ (h>>>16)) & 1;
+}
+const _tmp = {p:[0,0,0], n:[0,0,0]};
+function pickChar(cx, cy, tick, b){
+  // 非文字模式下的字符选择：01 / ASCII 灰度 / 自定义
+  if (state.charset === '01') return bitAt(cx,cy,tick) ? '1' : '0';
+  if (state.charset === 'ascii') return RAMP[Math.min(RAMP.length-1, ((b/(NB-1))*RAMP.length)|0)];
+  const cs = state.custom || '01';
+  let h = (Math.imul(cx,374761393) + Math.imul(cy,668265263) + Math.imul(tick,2246822519)) >>> 0;
+  h = Math.imul(h ^ (h>>>13), 1274126177) >>> 0;
+  return cs[((h ^ (h>>>16)) >>> 0) % cs.length];
+}
+function render(){
+  if (state.mode === 'image' && img) { renderImage(); return; }
+  const A = autoA + userA, B = autoB + userB;
+  const cosA=Math.cos(A), sinA=Math.sin(A), cosB=Math.cos(B), sinB=Math.sin(B);
+  const sh = SHAPES[state.shape];
+  const DIST = sh.dist, K = sh.k * Math.min(W,H);
+  cellZ.fill(-1e9);
+
+  for (let i=0;i<sh.Nu;i++){
+    const u = sh.u0 + (sh.u1-sh.u0)*i/sh.Nu;
+    for (let j=0;j<sh.Nv;j++){
+      const v = sh.v0 + (sh.v1-sh.v0)*j/sh.Nv;
+      // 文字模式：从 (u,v) 贴图取字符，空格不画
+      let chCode = 0;
+      if (state.mode === 'text'){
+        const tg = textGrid;
+        let gx, gy;
+        if (sh.textAlong === 'u'){
+          gx = ((u-sh.u0)/(sh.u1-sh.u0)*tg.gw)|0; gy = ((v-sh.v0)/(sh.v1-sh.v0)*tg.gh)|0;
+        } else {
+          gx = ((v-sh.v0)/(sh.v1-sh.v0)*tg.gw)|0; gy = ((u-sh.u0)/(sh.u1-sh.u0)*tg.gh)|0;
+        }
+        if (gx<0) gx=0; if (gx>=tg.gw) gx=tg.gw-1;
+        if (gy<0) gy=0; if (gy>=tg.gh) gy=tg.gh-1;
+        const ch = tg.grid[gy*tg.gw+gx];
+        if (ch === ' ') continue;
+        chCode = ch.codePointAt(0);
+      }
+      sh.fn(u,v,_tmp);
+      // rotX(A) 然后 rotZ(B)
+      const x=_tmp.p[0], y=_tmp.p[1], z=_tmp.p[2];
+      const y1=y*cosA - z*sinA, z1=y*sinA + z*cosA;
+      const x2=x*cosB - y1*sinB, y2=x*sinB + y1*cosB, z2=z1;
+      const nx=_tmp.n[0], ny=_tmp.n[1], nz=_tmp.n[2];
+      const ny1=ny*cosA - nz*sinA, nz1=ny*sinA + nz*cosA;
+      const nx2=nx*cosB - ny1*sinB, ny2=nx*sinB + ny1*cosB, nz2=nz1;
+
+      const ooz = 1/(z2 + DIST);
+      const px = W/2 + x2*ooz*K, py = H/2 - y2*ooz*K;
+      const cx = Math.floor(px/charW), cy = Math.floor(py/charH);
+      if (cx<0 || cx>=cols || cy<0 || cy>=rows) continue;
+      const idx = cy*cols + cx;
+      if (ooz > cellZ[idx]){
+        cellZ[idx] = ooz;
+        let l = nx2*LIGHT[0] + ny2*LIGHT[1] + nz2*LIGHT[2];
+        l = sh.absN ? Math.abs(l) : Math.max(0, l);
+        cellL[idx] = l;
+        if (state.mode === 'text') cellCh[idx] = chCode;
+      }
+    }
+  }
+
+  ctx.clearRect(0,0,W,H);
+  const pal = PALETTES[state.palette].buckets;
+  const tick = Math.floor(animT*3);
+  const isText = state.mode === 'text';
+
+  for (let b=0;b<NB;b++) buckets[b].count = 0;
+  for (let idx=0; idx<cellZ.length; idx++){
+    if (cellZ[idx] <= -1e8) continue;
+    let l = cellL[idx]; if (l>1) l=1;
+    const b = (l*(NB-1))|0;
+    buckets[b].cells[buckets[b].count++] = idx;
+  }
+  for (let b=0;b<NB;b++){
+    const bk = buckets[b]; if (!bk.count) continue;
+    ctx.fillStyle = pal[b];
+    for (let k=0;k<bk.count;k++){
+      const idx = bk.cells[k];
+      const cx = idx % cols, cy = (idx/cols)|0;
+      const ch = isText ? String.fromCodePoint(cellCh[idx]) : pickChar(cx, cy, tick, b);
+      ctx.fillText(ch, cx*charW, cy*charH);
+    }
+  }
+  drawDust();
+}
+
+/* ---------- 图片 ASCII 渲染 ---------- */
+function renderImage(){
+  ctx.clearRect(0,0,W,H);
+  const pal = PALETTES[state.palette].buckets;
+  const tick = Math.floor(animT*3);
+  const s = Math.min(cols/img.w, rows/img.h);
+  const dw = img.w*s, dh = img.h*s;
+  const ox = (cols-dw)/2, oy = (rows-dh)/2;
+  for (let b=0;b<NB;b++) buckets[b].count = 0;
+  for (let cy=0; cy<rows; cy++){
+    const iy = ((cy-oy)/s)|0;
+    if (iy<0 || iy>=img.h) continue;
+    for (let cx=0; cx<cols; cx++){
+      const ix = ((cx-ox)/s)|0;
+      if (ix<0 || ix>=img.w) continue;
+      let ink = 1 - img.data[iy*img.w+ix]; // 墨量：图越暗字越浓
+      if (ink < 0.03) continue;
+      // 轻微呼吸感
+      ink += (bitAt(cx,cy,tick) ? 0.04 : -0.04);
+      if (ink<0) ink=0; if (ink>1) ink=1;
+      const b = (ink*(NB-1))|0;
+      buckets[b].cells[buckets[b].count++] = cy*cols+cx;
+    }
+  }
+  for (let b=0;b<NB;b++){
+    const bk = buckets[b]; if (!bk.count) continue;
+    ctx.fillStyle = pal[b];
+    for (let k=0;k<bk.count;k++){
+      const idx = bk.cells[k];
+      const cx = idx % cols, cy = (idx/cols)|0;
+      ctx.fillText(pickChar(cx, cy, tick, b), cx*charW, cy*charH);
+    }
+  }
+  drawDust();
+}
+
+function drawDust(){
+  // 背景微尘字符（还原原视频的零星散点）
+  const dustTick = Math.floor(animT*1.5);
+  ctx.fillStyle = 'rgba(24,24,27,0.055)';
+  for (let i=0;i<34;i++){
+    const hx = bitAt(i*7+1, 3, dustTick), hy = bitAt(i*13+5, 11, dustTick);
+    const cx = (bitAt(i,1,dustTick)*65536 + i*997 + hx) % cols;
+    const cy = (bitAt(i,2,dustTick)*65536 + i*613 + hy) % rows;
+    ctx.fillText(bitAt(i,9,dustTick)?'1':'0', cx*charW, cy*charH);
+  }
+}
+
+/* ---------- 主循环 ---------- */
+let last = performance.now();
+let liveComp = null; // WebM 录制时的合成器
+function frame(now){
+  const dt = Math.min((now-last)/1000, 0.1); last = now;
+  if (!dragging){ autoA += dt*0.9*state.speed; autoB += dt*0.55*state.speed; }
+  animT += dt;
+  render();
+  if (liveComp) liveComp.draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ============================================================
+   导出：chrome 快照 + 逐帧合成
+   ============================================================ */
+function loadScript(src){
+  return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('加载失败 '+src)); document.head.appendChild(s); });
+}
+let html2cPromise = null;
+function ensureHtml2Canvas(){
+  if (!html2cPromise) html2cPromise = loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  return html2cPromise;
+}
+let gifPromise = null, GIF_WORKER = null;
+function ensureGif(){
+  if (!gifPromise) gifPromise = (async () => {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js');
+    const res = await fetch('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js');
+    if (!res.ok) throw new Error('gif.worker 下载失败');
+    GIF_WORKER = URL.createObjectURL(new Blob([await res.text()], {type:'application/javascript'}));
+  })();
+  return gifPromise;
+}
+
+/* 生成整卡合成器：html2canvas 拍静态部分，ASCII 画布逐帧叠上 */
+async function getCompositor(exportW){
+  if (document.activeElement) document.activeElement.blur();
+  const card = el.card, cv = el.canvas;
+  let chrome = null;
+  // 快照前把卡内按钮恢复默认态（避免把“编码中…”拍进去）
+  const stash = [...card.querySelectorAll('.btn')].map(b => ({b, t:b.textContent, d:b.disabled}));
+  const restoreBtns = () => stash.forEach(({b,t,d}) => { b.textContent = t; b.disabled = d; });
+  stash.forEach(({b}) => { b.disabled = false; if (b.dataset.def) b.textContent = b.dataset.def; });
+  try {
+    await ensureHtml2Canvas();
+    const r = card.getBoundingClientRect();
+    const scale = exportW / r.width;
+    cv.style.opacity = '0';
+    chrome = await html2canvas(card, {backgroundColor:'#ffffff', scale, logging:false, useCORS:true});
+  } catch(e){ console.warn('html2canvas 不可用，退化为纯动画导出', e); }
+  finally { cv.style.opacity = '1'; restoreBtns(); }
+  const rCard = card.getBoundingClientRect(), rCv = cv.getBoundingClientRect();
+  const s = chrome ? chrome.width / rCard.width : exportW / rCv.width;
+  const W2 = chrome ? chrome.width : Math.round(rCv.width*s);
+  const H2 = chrome ? chrome.height : Math.round(rCv.height*s);
+  const comp = document.createElement('canvas'); comp.width=W2; comp.height=H2;
+  const cx = comp.getContext('2d');
+  const ox = chrome ? (rCv.left-rCard.left)*s : 0;
+  const oy = chrome ? (rCv.top-rCard.top)*s : 0;
+  const dw = rCv.width*s, dh = rCv.height*s;
+  return { comp, draw(){
+    cx.fillStyle = '#ffffff'; cx.fillRect(0,0,W2,H2);
+    if (chrome) cx.drawImage(chrome,0,0);
+    cx.drawImage(cv, ox, oy, dw, dh);
+  }};
+}
+function download(blob,name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+}
+
+let busy = false;
+function setBtn(btn,text){ btn.textContent = text; }
+function withBusy(btn,label,fn){
+  return async () => {
+    if (busy) return; busy = true;
+    const old = btn.textContent; btn.disabled = true;
+    try { await fn(t => setBtn(btn,t)); }
+    catch(e){ console.error(e); toast('导出失败：' + e.message); }
+    finally { busy = false; btn.disabled = false; setBtn(btn, old); }
+  };
+}
+
+/* GIF：3 秒整卡动画 */
+el.btnGif.addEventListener('click', withBusy(el.btnGif, '⇩ Export GIF', async (prog) => {
+  prog('准备中…');
+  await ensureGif();
+  const compo = await getCompositor(760);
+  const fps = 12, frames = 34;
+  const gif = new GIF({ workers:4, quality:9, width:compo.comp.width, height:compo.comp.height,
+                        workerScript:GIF_WORKER, background:'#ffffff' });
+  for (let f=0; f<frames; f++){
+    if (!dragging){ autoA += (1/fps)*0.9*state.speed; autoB += (1/fps)*0.55*state.speed; }
+    animT += 1/fps;
+    render();
+    compo.draw();
+    gif.addFrame(compo.comp, {copy:true, delay:Math.round(1000/fps)});
+    prog(`录制 ${f+1}/${frames}`);
+    await new Promise(r=>setTimeout(r,0));
+  }
+  prog('编码 0%');
+  gif.on('progress', p => prog(`编码 ${(p*100)|0}%`));
+  await new Promise((res, rej) => {
+    gif.on('finished', blob => { download(blob,'ascii-card.gif'); res(); });
+    gif.on('abort', () => rej(new Error('GIF 编码中断')));
+    gif.render();
+  });
+  prog('完成');
+}));
+
+/* PNG：整卡单帧 */
+el.btnPng.addEventListener('click', withBusy(el.btnPng, 'PNG 静态图', async (prog) => {
+  prog('生成中…');
+  const compo = await getCompositor(1080);
+  compo.draw();
+  await new Promise((res,rej)=>compo.comp.toBlob(b=>b?(download(b,'ascii-card.png'),res()):rej(new Error('toBlob 失败')),'image/png'));
+}));
+
+/* WebM：4 秒整卡视频（实时录制） */
+el.btnWebm.addEventListener('click', withBusy(el.btnWebm, 'WebM 视频', async (prog) => {
+  prog('准备中…');
+  const compo = await getCompositor(760);
+  const stream = compo.comp.captureStream(30);
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+  const rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:6_000_000});
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  const done = new Promise(res => rec.onstop = res);
+  liveComp = compo; rec.start();
+  for (let s=4; s>0; s--){ prog(`录制中 ${s}s`); await new Promise(r=>setTimeout(r,1000)); }
+  liveComp = null; rec.stop(); await done;
+  prog('封装中…');
+  download(new Blob(chunks,{type:'video/webm'}), 'ascii-card.webm');
+}));
+
+/* ============================================================
+   控件 & 状态同步
+   ============================================================ */
+function toast(msg){
+  el.toast.textContent = msg; el.toast.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(()=>el.toast.classList.remove('show'), 2200);
+}
+function segWire(container, key, cb){
+  container.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    container.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
+    state[key] = b.dataset.v; if (cb) cb();
+  });
+}
+segWire(el.charsetSeg, 'charset', () => {
+  el.customField.style.display = state.charset === 'custom' ? '' : 'none';
+});
+segWire(el.shapePills, 'shape');
+segWire(el.modePills, 'mode', syncModeUI);
+
+function syncModeUI(){
+  el.modePills.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.v===state.mode));
+  el.textField.style.display = state.mode === 'text' ? '' : 'none';
+  el.imageField.style.display = state.mode === 'image' ? '' : 'none';
+  el.shapeField.style.display = state.mode === 'image' ? 'none' : '';
+  el.btnClearImg.style.display = img ? '' : 'none';
+}
+el.textInput.addEventListener('input', () => { state.text = el.textInput.value; buildTextGrid(); });
+el.customInput.addEventListener('input', () => { state.custom = el.customInput.value; });
+el.btnUpload.addEventListener('click', () => el.fileInput.click());
+el.fileInput.addEventListener('change', () => { loadImageFile(el.fileInput.files[0]); el.fileInput.value=''; });
+el.btnClearImg.addEventListener('click', () => { img = null; state.mode = 'shape'; syncModeUI(); });
+
+/* 拖拽图片到卡片 */
+el.card.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect='copy'; });
+el.card.addEventListener('drop', e => {
+  e.preventDefault();
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) loadImageFile(f);
+});
+
+/* 配色素点 */
+Object.entries(PALETTES).forEach(([k,p]) => {
+  const b = document.createElement('button');
+  b.dataset.v = k; b.title = p.name;
+  b.style.background = `linear-gradient(135deg, ${p.dark} 20%, ${p.lit})`;
+  if (k === state.palette) b.classList.add('on');
+  el.dots.appendChild(b);
+});
+el.dots.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  el.dots.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
+  state.palette = b.dataset.v;
+});
+
+el.speed.addEventListener('input', () => {
+  state.speed = parseFloat(el.speed.value);
+  el.speedVal.textContent = state.speed.toFixed(2);
+});
+el.density.addEventListener('input', () => {
+  state.fontSize = parseFloat(el.density.value);
+  el.densVal.textContent = state.fontSize + 'px';
+  setupFont();
+});
+
+/* contenteditable：只允许纯文本粘贴；标题禁止换行 */
+[el.title, el.desc].forEach(node => {
+  node.addEventListener('paste', e => {
+    e.preventDefault();
+    const t = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, t);
+  });
+});
+el.title.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); el.title.blur(); } });
+
+/* Copy Link：配置 → URL hash */
+function collectState(){
+  const s = { ...state, title: el.title.textContent, desc: el.desc.textContent };
+  if (s.mode === 'image') s.mode = 'shape'; // 图片不进链接
+  return s;
+}
+el.btnCopy.addEventListener('click', () => {
+  const json = JSON.stringify(collectState());
+  const b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const base = location.href.split('#')[0];
+  const url = base + '#s=' + b64;
+  history.replaceState(null, '', '#s=' + b64);
+  if (navigator.clipboard && navigator.clipboard.writeText)
+    navigator.clipboard.writeText(url).then(()=>toast('链接已复制，打开即还原此卡片')).catch(()=>prompt('复制链接：', url));
+  else prompt('复制链接：', url);
+});
+
+/* 从 hash 还原 */
+(function restore(){
+  if (!location.hash.startsWith('#s=')) return;
+  try {
+    const b64 = location.hash.slice(3).replace(/-/g,'+').replace(/_/g,'/');
+    const s = JSON.parse(decodeURIComponent(escape(atob(b64))));
+    if (s.shape && SHAPES[s.shape]) { state.shape = s.shape;
+      el.shapePills.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.v===s.shape)); }
+    if (s.charset) { state.charset = s.charset;
+      el.charsetSeg.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.v===s.charset)); }
+    if (s.palette && PALETTES[s.palette]) { state.palette = s.palette;
+      el.dots.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.v===s.palette)); }
+    if (typeof s.speed === 'number') { state.speed = s.speed; el.speed.value = s.speed; el.speedVal.textContent = s.speed.toFixed(2); }
+    if (typeof s.fontSize === 'number') { state.fontSize = s.fontSize; el.density.value = s.fontSize; el.densVal.textContent = s.fontSize + 'px'; setupFont(); }
+    if (typeof s.title === 'string' && s.title.trim()) el.title.textContent = s.title;
+    if (typeof s.desc === 'string' && s.desc.trim()) el.desc.textContent = s.desc;
+    if (s.mode && s.mode !== 'image') { state.mode = s.mode; }
+    if (typeof s.text === 'string' && s.text.trim()) { state.text = s.text; el.textInput.value = s.text; buildTextGrid(); }
+    if (typeof s.custom === 'string' && s.custom) { state.custom = s.custom; el.customInput.value = s.custom; }
+    if (state.charset === 'custom') el.customField.style.display = '';
+    syncModeUI();
+  } catch(e){ console.warn('hash 解析失败', e); }
+})();
+
+resize();
+</script>
+</body>
+</html>
